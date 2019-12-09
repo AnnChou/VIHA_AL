@@ -1,0 +1,139 @@
+---
+header-includes:
+- \usepackage[table]{xcolor}
+- \usepackage{amsmath}
+- \usepackage{xcolor}
+- \usepackage{float}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{fancyhdr}
+- \usepackage{lipsum}
+- \AtBeginDocument{\let\maketitle\relax}
+Output: 
+  pdf_document:
+  toc: false
+sansfont: Calibri Light
+documentclass: report
+geometry: margin=2.0cm
+#classoption: landscape
+---
+  
+```{r setup, echo=FALSE}
+options(tinytex.verbose = TRUE)
+options(knitr.table.format = "latex")
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(DT)))
+suppressWarnings(suppressPackageStartupMessages(library(stringr)))
+library(dplyr)
+library(knitr)
+library(rmarkdown)
+#library(xtable)
+library(kableExtra)
+library(formattable)
+```
+
+
+```{r load, include=FALSE}
+load(file = "my-dt.Rdata")
+```
+```{r total, echo=FALSE}
+# sub set data for the current facilty 
+#paste("building name:",blt_nm,sep = " ")
+rpt_data <- rt[rt$Building.name==blt_nm,]
+
+
+
+total <- round(sum(rpt_data$Client.Rate),2)
+#total <- as.character(total)
+total <- currency(total, digits = 2L)
+
+rpt_data$Client.Rate <- currency(rpt_data$Client.Rate, digits = 2L)                               # prepare currency format 
+
+```
+
+
+\pagestyle{fancy}
+\fancyhead[CO,CE]{Vancouver Island Health Authority}
+\fancyfoot[CO,CE]{`r format(Sys.time(), tz="America/Los_Angeles",usetz=TRUE)`}
+\fancyfoot[LE,RO]{\thepage}
+
+
+
+\newpage
+\vspace*{160px}
+\begin{center}
+\fontfamily{cmr}
+\fontsize{18}{28}
+\selectfont
+\textcolor{red}{Vancouver Island Health Authority}      
+
+\fontfamily{cmr}
+\fontsize{18}{28}
+\fontseries{b}
+\selectfont
+\bigbreak
+\line(1,0){440}
+\newline
+\textcolor{red}{Assisted Living BILLING ACTIVITY REPORT}   
+\line(1,0){380}
+
+{\ttfamily
+\fontsize{12}{12} 
+\hspace*{3ex}\hspace{4ex}\textcolor{black}{`r blt_nm`}  
+}
+\newline  
+\fontsize{10}{10} 
+\textcolor{black}`r format(Sys.time(), "%B %d, %Y")` 
+
+\vspace{4 cm}
+
+\end{center}
+
+\newpage
+
+\vspace*{10px}
+\fontfamily{cmr}
+\fontsize{14}{80}
+{\ttfamily
+\hspace*{3ex}\hspace{10ex}\hspace{1ex}\textcolor{red}{ASSISTED LIVING FACILTY BILLING ACTIVITY REPORT} 
+}
+\newline
+\newline
+
+\textcolor{black}{From Date: } `r b_date`  \hspace{5ex}\textcolor{black}{To Date: }  `r e_date`  
+\textcolor{black}{Facilty: } `r blt_nm`     \hfill
+\textcolor{black}{Total  Amount:} `r total`  \  
+
+\centering
+
+
+```{r reports, echo=FALSE, results='asis', message=F, warning=F, fig.align='center'}
+
+for ( care_type in unique(rpt_data$Hospital.Service)){
+   rpt_sub_data <- rpt_data[rpt_data$Hospital.Service==care_type,]
+   names(rpt_sub_data) <- c("Building.name","Hospital.Service","Client Name", "MRN", 
+                            "Service From Date", "Service To Date", "Client Rate (Monthly) Rate",
+                            "Rate Type")
+   print(kable(rpt_sub_data[,c(-1,-2)], row.names = T, longtable = T,                                      # print statement is needed when kable() is in a loop
+      format = "latex",booktabs = T) %>% 
+      add_header_above(care_type) %>%
+      kable_styling(latex_options = c("striped","scale_down",
+                                     "hold_postition","repeat_header"),
+                                     position = "center",full_width = T,
+                                     font_size = 7) %>% 
+      footnote(general = "Rate Types: AL - Assisted Living Rate; TAL - Temporary Rate Reduction") 
+  )
+  
+}#end of for loop
+```
+

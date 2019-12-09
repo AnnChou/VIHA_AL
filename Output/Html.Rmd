@@ -1,0 +1,68 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  html_document:
+    css: styles.css
+classoption: landscape
+---
+
+```{r setup, echo=FALSE}
+options(tinytex.verbose = TRUE)
+suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(leaflet)))
+suppressWarnings(suppressPackageStartupMessages(library(DT)))
+suppressWarnings(suppressPackageStartupMessages(library(stringr)))
+library(dplyr)
+library(knitr)
+library(markdown)
+library(xtable)
+library(formattable)
+library(kableExtra)
+```
+
+
+# Assisted Living Facility Billing Activity Report 
+
+```{r load, include=FALSE}
+load(file = "my-dt.Rdata")
+```
+
+
+```{r calculation, echo=FALSE, results='asis'}
+# sub set data for the current facilty 
+#paste("building name:",blt_nm,sep = " ")
+rpt_data <- rt[rt$Building.name==blt_nm,]
+
+total <- round(sum(rpt_data$Client.Rate),2)                         #formatting data for dollar signs
+#total <- as.character(total)
+total <- currency(total, digits = 2L)
+
+rpt_data$Client.Rate <- currency(rpt_data$Client.Rate, digits = 2L)  
+rws <- seq(1, (nrow(rpt_data)), by = 2)
+col <- rep("\\rowcolor[gray]{0.95}", length(rws))
+```
+
+### Report Generated on:`r format(Sys.time(), "%B %d, %Y")`  {#rpttext .emphasized}
+### Repport Period: From: `r b_date`                                    To: `r e_date` {#rpttext .emphasized}
+### Facility: `r blt_nm` {#rpttext .emphasized}
+### Total Amount: `r total`  {#rpttext .emphasized}
+
+```{r reports, echo=FALSE, results='asis'}
+#print table
+
+for ( care_type in unique(rpt_data$Hospital.Service)){
+   rpt_sub_data <- rpt_data[rpt_data$Hospital.Service==care_type,]
+   names(rpt_sub_data) <- c("Building.name","Hospital.Service","Client Name", "MRN", 
+                            "Service From Date", "Service To Date", "Client Rate (Monthly) Rate",
+                            "Rate Type")
+   #print(kable(as.data.frame(care_type),col.names = F)) 
+   print(kable(rpt_sub_data[,c(-1,-2)],caption = paste("Service: ", care_type, sep = "")) %>% 
+           kable_styling(bootstrap_options = c("striped","hover")))
+         #add_header_above(c( "combo" = 6), align = "|l|", escape = FALSE)) #print function is necessary for printing multiple tables in both html and pdf output
+}
+```
+
+
